@@ -1,0 +1,73 @@
+import requests
+import csv
+from datetime import datetime
+
+API_KEY = "88dc8065434e4ee190d54218aab0d898"  # Replace this with your key
+SEARCH_TERMS = ["$NVDA", "$AMZN", "$PLTR", "$AMD", "$SOFI", "$GOOGL", "Ethereum",
+                "$ETH/USD", "$QQQ", "S&P 500", "small-cap", "$VRT", "$BBAI", "$ARRY", "AI stocks"]
+NEWS_LIMIT = 7  # Number of headlines per term
+OUTPUT_DIR = "D:\Evan\Documents\Work\Projects\Python\Scrape\CSV"
+TRUSTED_DOMAINS = ",".join([
+    "wsj.com", "ft.com", "bloomberg.com",
+    "reuters.com", "forbes.com", "cnbc.com",
+    "marketwatch.com", "businessinsider.com",
+    "economist.com", "seekingalpha.com", "marketbeat.com"
+])
+
+
+def fetch_news(query):
+    url = "https://newsapi.org/v2/everything"
+    params = {
+        "q": query,
+        "language": "en",
+        "sortBy": "publishedAt",
+        "pageSize": NEWS_LIMIT,
+        "domains": TRUSTED_DOMAINS,
+        "apiKey": API_KEY
+    }
+
+    response = requests.get(url, params=params)
+    if response.status_code != 200:
+        print(f"❌ Failed for {query}: HTTP {response.status_code}")
+        return []
+
+    articles = response.json().get("articles", [])
+    return [
+        {
+            "query": query,
+            "title": art["title"],
+            "source": art["source"]["name"],
+            "url": art["url"],
+            "publishedAt": art["publishedAt"]
+        }
+        for art in articles
+    ]
+
+
+def save_to_csv(all_news):
+    filename = f"{OUTPUT_DIR}\\trusted_news_{datetime.now():%Y%m%d_%H%M%S}.csv"
+    keys = ["query", "title", "source", "url", "publishedAt"]
+    with open(filename, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=keys)
+        writer.writeheader()
+        writer.writerows(all_news)
+    print(f"✅ Saved trusted news to {filename}")
+
+
+def main():
+    all_news = []
+    for term in SEARCH_TERMS:
+        print(f"\n🔎 Searching '{term}' from trusted sources...")
+        news = fetch_news(term)
+        if news:
+            for art in news:
+                print(f"- [{art['source']}] {art['title']}")
+            all_news.extend(news)
+        else:
+            print("No articles found.")
+    if all_news:
+        save_to_csv(all_news)
+
+
+if __name__ == "__main__":
+    main()
