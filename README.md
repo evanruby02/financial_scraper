@@ -1,4 +1,7 @@
-# financial_scraper
+# Financial Updates Newsletter
+  # [draft description of the project as a whole]
+
+# financial-news-scraper
   # V1
   # V1 is a barebones scraper, which pulls headlines and links into a CSV file.
   
