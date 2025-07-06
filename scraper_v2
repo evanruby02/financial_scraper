@@ -6,10 +6,10 @@ from collections import defaultdict
 from newspaper import Article
 from bs4 import BeautifulSoup
 
-API_KEY = "88dc8065434e4ee190d54218aab0d898"
+API_KEY = ""
 SEARCH_TERMS = ["$NVDA", "$AMZN", "$PLTR", "$AMD", "$QQQ", "$VOO", "$SOFI"]
 NEWS_LIMIT = 5
-OUTPUT_DIR = "D:/Evan/Documents/Work/Projects/Python/Scrape/CSV"
+OUTPUT_DIR = ""
 TRUSTED_DOMAINS = ",".join([
     "wsj.com", "ft.com", "bloomberg.com", "reuters.com",
     "forbes.com", "cnbc.com", "marketwatch.com",
