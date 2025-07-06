@@ -2,11 +2,11 @@ import requests
 import csv
 from datetime import datetime
 
-API_KEY = "88dc8065434e4ee190d54218aab0d898"  # Replace this with your key
+API_KEY = ""  # Replace this with your key
 SEARCH_TERMS = ["$NVDA", "$AMZN", "$PLTR", "$AMD", "$SOFI", "$GOOGL", "Ethereum",
                 "$ETH/USD", "$QQQ", "S&P 500", "small-cap", "$VRT", "$BBAI", "$ARRY", "AI stocks"]
 NEWS_LIMIT = 7  # Number of headlines per term
-OUTPUT_DIR = "D:\Evan\Documents\Work\Projects\Python\Scrape\CSV"
+OUTPUT_DIR = ""
 TRUSTED_DOMAINS = ",".join([
     "wsj.com", "ft.com", "bloomberg.com",
     "reuters.com", "forbes.com", "cnbc.com",
