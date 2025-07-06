@@ -1,0 +1,134 @@
+import requests
+import pandas as pd
+from datetime import datetime
+from urllib.parse import urlparse
+from collections import defaultdict
+from newspaper import Article
+from bs4 import BeautifulSoup
+
+API_KEY = "88dc8065434e4ee190d54218aab0d898"
+SEARCH_TERMS = ["$NVDA", "$AMZN", "$PLTR", "$AMD", "$QQQ", "$VOO", "$SOFI"]
+NEWS_LIMIT = 5
+OUTPUT_DIR = "D:/Evan/Documents/Work/Projects/Python/Scrape/CSV"
+TRUSTED_DOMAINS = ",".join([
+    "wsj.com", "ft.com", "bloomberg.com", "reuters.com",
+    "forbes.com", "cnbc.com", "marketwatch.com",
+    "businessinsider.com", "economist.com", "seekingalpha.com", "marketbeat.com"
+])
+
+failed_domains = defaultdict(int)
+
+boilerplate_phrases = [
+    "please enable javascript",
+    "disable ad blocker",
+    "unsupported browser",
+    "access denied",
+    "turn on javascript"
+]
+
+
+def fetch_news(query):
+    url = "https://newsapi.org/v2/everything"
+    params = {
+        "q": query,
+        "language": "en",
+        "sortBy": "publishedAt",
+        "pageSize": NEWS_LIMIT,
+        "domains": TRUSTED_DOMAINS,
+        "apiKey": API_KEY
+    }
+    response = requests.get(url, params=params)
+    if response.status_code != 200:
+        print(f"❌ Failed for {query}: HTTP {response.status_code}")
+        print(response.text)
+        return []
+    return response.json().get("articles", [])
+
+
+def extract_article_text(url):
+    try:
+        article = Article(url)
+        article.download()
+        article.parse()
+        text = article.text.strip()
+        if text:
+            return text
+    except Exception as e:
+        print(f"[newspaper3k] Failed: {url} → {e}")
+
+    try:
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        response = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.content, "html.parser")
+        paragraphs = soup.find_all("p")
+        text = "\n".join(p.get_text() for p in paragraphs).strip()
+        if text:
+            return text
+    except Exception as e:
+        print(f"[BeautifulSoup fallback] Failed: {url} → {e}")
+
+    return ""
+
+
+def save_to_csv(data):
+    df = pd.DataFrame(data)
+    filename = f"{OUTPUT_DIR}\\trusted_news_{datetime.now():%Y%m%d_%H%M%S}.csv"
+    df.to_csv(filename, index=False, encoding="utf-8")
+    print(f"\n✅ Saved full data to {filename}")
+
+
+def main():
+    all_news = []
+
+    for term in SEARCH_TERMS:
+        print(f"\n🔎 Searching '{term}'...")
+        articles = fetch_news(term)
+
+        for art in articles:
+            print(f"• {art['title']} ({art['source']['name']})")
+
+            article_text = extract_article_text(art['url'])
+
+            is_boilerplate = (
+                not article_text or
+                any(phrase in article_text.lower()
+                    for phrase in boilerplate_phrases)
+            )
+
+            if is_boilerplate:
+                summary = art.get("description") or ""
+                if summary.strip():
+                    print(
+                        f"⚠️ Using NewsAPI summary fallback for: {art['url']}")
+                    article_text = summary
+                else:
+                    print(
+                        f"⚠️ No usable content from scraper or summary for: {art['url']}")
+                    article_text = "[Content not available]"
+
+                parsed_url = urlparse(art["url"])
+                domain = parsed_url.netloc.replace("www.", "")
+                failed_domains[domain] += 1
+
+            all_news.append({
+                "query": term,
+                "title": art["title"],
+                "source": art["source"]["name"],
+                "url": art["url"],
+                "publishedAt": art["publishedAt"],
+                "article_text": article_text
+            })
+
+    if all_news:
+        save_to_csv(all_news)
+    else:
+        print("No news to save.")
+
+    if failed_domains:
+        print("\n🚫 Domains that failed full text extraction:")
+        for domain, count in sorted(failed_domains.items(), key=lambda x: -x[1]):
+            print(f"  - {domain}: {count} article(s)")
+
+
+if __name__ == "__main__":
+    main()
