@@ -10,4 +10,8 @@
   # The line item will be removed from the CSV output.
 
   # V3
+  # V3 will incorporate the OpenAI API by passing the CSV file with a prompt through ChatGPT
   # V3 is ...
+
+  # V4
+  # V4 may expand on V3 by formatting the output as a newsletter, report, etc.
