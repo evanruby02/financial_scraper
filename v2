@@ -16,17 +16,6 @@ TRUSTED_DOMAINS = ",".join([
     "businessinsider.com", "economist.com", "seekingalpha.com", "marketbeat.com"
 ])
 
-failed_domains = defaultdict(int)
-
-boilerplate_phrases = [
-    "please enable javascript",
-    "disable ad blocker",
-    "unsupported browser",
-    "access denied",
-    "turn on javascript"
-]
-
-
 def fetch_news(query):
     url = "https://newsapi.org/v2/everything"
     params = {
@@ -79,6 +68,7 @@ def save_to_csv(data):
 
 def main():
     all_news = []
+    THRESHOLD = 100
 
     for term in SEARCH_TERMS:
         print(f"\n🔎 Searching '{term}'...")
@@ -89,26 +79,10 @@ def main():
 
             article_text = extract_article_text(art['url'])
 
-            is_boilerplate = (
-                not article_text or
-                any(phrase in article_text.lower()
-                    for phrase in boilerplate_phrases)
-            )
-
-            if is_boilerplate:
-                summary = art.get("description") or ""
-                if summary.strip():
-                    print(
-                        f"⚠️ Using NewsAPI summary fallback for: {art['url']}")
-                    article_text = summary
-                else:
-                    print(
-                        f"⚠️ No usable content from scraper or summary for: {art['url']}")
-                    article_text = "[Content not available]"
-
-                parsed_url = urlparse(art["url"])
-                domain = parsed_url.netloc.replace("www.", "")
-                failed_domains[domain] += 1
+            if not article_text or len(article_text.strip()) < THRESHOLD:
+                print(
+                    f"🛑 Skipping article with insufficient content: {art['url']}")
+                continue
 
             all_news.append({
                 "query": term,
@@ -123,11 +97,6 @@ def main():
         save_to_csv(all_news)
     else:
         print("No news to save.")
-
-    if failed_domains:
-        print("\n🚫 Domains that failed full text extraction:")
-        for domain, count in sorted(failed_domains.items(), key=lambda x: -x[1]):
-            print(f"  - {domain}: {count} article(s)")
 
 
 if __name__ == "__main__":
